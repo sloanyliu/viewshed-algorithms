@@ -10,19 +10,18 @@
 class ViewShed 
 {
   public:
-    float VPRow;
-    float VPCol;
     
-    ViewShed(float vpRow, float vpCol);
+    //ViewShed(int vpRow, int vpCol);
+    ViewShed(int oRow, int oCol);
     ~ViewShed();
 
     void hello(void);
 
     
     void bootStrap(std::vector<std::vector<float>> dem);
-    void refreshAllGrids(std::vector<std::vector<float>> dem);
+    void refreshAllGrids(void);
     
-    void refreshAG(std::vector<std::vector<float>> dem);
+    void refreshAG(void);
     void refreshVS(void);
     void refreshVV(void);
     void refreshTG(void);
@@ -32,12 +31,28 @@ class ViewShed
     void printVizScore(void);
     void printTrackerGrid(void);
     
-    void processAllEdges(float vpRow, float vpCol);
-    void processAllSlices(float vpRow, float vpCol);  
+    void processAllEdges(int vpRow, int vpCol);
+    void processAllSlices(int vpRow, int vpCol);  
+    void processAllPoints(void);
 
+    bool queryVisibility(int srcRow, int srcCol, int destRow, int destCol);
     //void privStructs(void);
   
   private:
+
+    typedef std::vector<int> vec1d;
+    typedef std::vector<vec1d> vec2d;
+
+    int ORow;
+    int OCol;
+    int rowAdj;
+    int colAdj;
+
+    struct XY
+    {
+      int X;
+      int Y;
+    };
     
     struct XYZ 
     {
@@ -87,9 +102,13 @@ class ViewShed
 
     //const int some = 20;
     //int other;
-    float MaxRow;
-    float MaxCol;
+    int MaxRow;
+    int MaxCol;
+    //first [r][c] is for look up
+    //at each [r][c], there is 2d vector that is vizViews of [r][c]
+    std::vector<std::vector<vec2d>> lut;
  
+    std::vector<std::vector<float>> DEM;
     std::vector<std::vector<float>> AuxGrid;
     std::vector<std::vector<int>> vizScore;
     std::vector<std::vector<int>> vizViews;
@@ -110,10 +129,10 @@ class ViewShed
     
     // Gets min visible height when processing edges
     float minVisHeight(XYZ p1, XYZ p2, XYZ p3, XYZ p4); 
-    bool inGrid(float cRow, float cCol);
-    std::vector<XYZ> getSliceIndices(GSlice slc, float iRow, float iCol);
-    void processEdge(GEdge se, float vpRow, float vpCol);
-    void processSlice(GSlice slc, float vpRow, float vpCol);
+    bool inGrid(int cRow, int cCol);
+    std::vector<XY> getSliceIndices(GSlice slc, int iRow, int iCol);
+    void processEdge(GEdge se, int vpRow, int vpCol);
+    void processSlice(GSlice slc, int vpRow, int vpCol);
 
     const std::vector<GEdge> allEdges = {GEdge::N, GEdge::NE, GEdge::E, GEdge::SE, 
                                          GEdge::S, GEdge::SW, GEdge::W, GEdge::NW};

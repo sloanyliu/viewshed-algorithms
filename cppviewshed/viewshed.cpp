@@ -8,10 +8,12 @@
 
 // ------------------
 // Ctor(dummy)
-ViewShed::ViewShed(float vpRow, float vpCol)
+ViewShed::ViewShed(int oRow, int oCol)
 {
-  VPRow = vpRow;
-  VPCol = vpCol;
+  ORow = oRow; // lowerleft x
+  OCol = oCol; // lowerleft y
+  rowAdj = oRow;
+  colAdj = oCol - MaxCol + 1;
 }
 
 
@@ -134,14 +136,6 @@ ViewShed::XYZ ViewShed::scalarMult(float c, XYZ p1)
 // Vector Angle function
 float ViewShed::vecAngle(XYZ p1, XYZ p2)
 {
-  float p1_xs = p1.X * p1.X;
-  float p1_ys = p1.Y * p1.Y;
-  float p1_zs = p1.Z * p1.Z;
-
-  float p2_xs = p2.X * p2.X;
-  float p2_ys = p2.Y * p2.Y;
-  float p2_zs = p2.Z * p2.Z;
-  
   float dprod = dotProduct(p1, p2);
   float p1_mag = vecMag(p1);
   float p2_mag = vecMag(p2);
@@ -252,11 +246,12 @@ float ViewShed::minVisHeight(XYZ p1, XYZ p2, XYZ p3, XYZ p4)
 // Sotre all zeros in all other grids
 void ViewShed::bootStrap(std::vector<std::vector<float>> dem)
 {
-  MaxRow = dem.size();
-  MaxCol = dem[0].size();
+  MaxRow = static_cast<int>(dem.size());
+  MaxCol = static_cast<int>(dem[0].size());
 
   for (int i = 0; i < MaxRow; i++) {
     AuxGrid.push_back(dem[i]);
+    DEM.push_back(dem[i]);
   }
 
   for (int i = 0; i < MaxRow; i++) {
@@ -288,9 +283,9 @@ void ViewShed::bootStrap(std::vector<std::vector<float>> dem)
 // ------------------
 // Sets AuxGrid to DEM
 // Sets rest to all 0's
-void ViewShed::refreshAllGrids(std::vector<std::vector<float>> dem)
+void ViewShed::refreshAllGrids()
 {
-  refreshAG(dem);
+  refreshAG();
   refreshVS();
   refreshVV();
   refreshTG();
@@ -328,11 +323,11 @@ void ViewShed::refreshTG(void)
 
 }
 
-void ViewShed::refreshAG(std::vector<std::vector<float>> dem)
+void ViewShed::refreshAG(void)
 {
   for (int i = 0; i < AuxGrid.size(); i++) {
     for (int j = 0; AuxGrid[i].size(); j++) {
-      (AuxGrid[i])[j] = (dem[i])[j];
+      (AuxGrid[i])[j] = (DEM[i])[j];
     }
   }
 }
@@ -394,7 +389,7 @@ void ViewShed::printTrackerGrid(void)
 
 // ------------------
 // Decides whether a point is within the grid coordinates
-bool ViewShed::inGrid(float cRow, float cCol)
+bool ViewShed::inGrid(int cRow, int cCol)
 {
   bool rowIn = (cRow >= 0) && (cRow < MaxRow);
   bool colIn = (cCol >= 0) && (cCol < MaxCol);
@@ -405,10 +400,10 @@ bool ViewShed::inGrid(float cRow, float cCol)
 // ------------------
 // All the indices in a slice plus an edge
 // Will use TrackerGrid to skip those already analyzed
-std::vector<ViewShed::XYZ> ViewShed::getSliceIndices(GSlice slc, float iRow, float iCol)
+std::vector<ViewShed::XY> ViewShed::getSliceIndices(GSlice slc, int iRow, int iCol)
 {
-  std::vector<XYZ> indices;
-  XYZ ipt = {iRow, iCol, 0};
+  std::vector<XY> indices;
+  XY ipt = {iRow, iCol};
   indices.push_back(ipt);
 
   int i = 0, j = 0, tracker = 0;
@@ -421,7 +416,7 @@ std::vector<ViewShed::XYZ> ViewShed::getSliceIndices(GSlice slc, float iRow, flo
       tracker = 0;
       while (j > (i - 1)) {
         if (inGrid(iRow + i, iCol + j) == true) {
-          XYZ newIndex = {iRow + i, iCol + j, 0};
+          XY newIndex = {iRow + i, iCol + j};
           indices.push_back(newIndex);
           tracker++;
         }
@@ -437,7 +432,7 @@ std::vector<ViewShed::XYZ> ViewShed::getSliceIndices(GSlice slc, float iRow, flo
       tracker = 0;
       while (j < (-1 * (i - 1))) {
         if (inGrid(iRow + i, iCol + j) == true) {
-          XYZ newIndex = {iRow + i, iCol + j, 0};
+          XY newIndex = {iRow + i, iCol + j};
           indices.push_back(newIndex);
           tracker++;
         }
@@ -453,7 +448,7 @@ std::vector<ViewShed::XYZ> ViewShed::getSliceIndices(GSlice slc, float iRow, flo
       tracker = 0;
       while (i > (-1 * (j + 1))) {
         if (inGrid(iRow + i, iCol + j) == true) {
-          XYZ newIndex = {iRow + i, iCol + j, 0};
+          XY newIndex = {iRow + i, iCol + j};
           indices.push_back(newIndex);
           tracker++;
         }
@@ -469,7 +464,7 @@ std::vector<ViewShed::XYZ> ViewShed::getSliceIndices(GSlice slc, float iRow, flo
       tracker = 0;
       while (i < (j + 1)) {
         if (inGrid(iRow + i, iCol + j) == true) {
-          XYZ newIndex = {iRow + i, iCol + j, 0};
+          XY newIndex = {iRow + i, iCol + j};
           indices.push_back(newIndex);
           tracker++;
         }
@@ -485,7 +480,7 @@ std::vector<ViewShed::XYZ> ViewShed::getSliceIndices(GSlice slc, float iRow, flo
       tracker = 0;
       while (j < (i + 1)) {
         if (inGrid(iRow + i, iCol + j) == true) {
-          XYZ newIndex = {iRow + i, iCol + j, 0};
+          XY newIndex = {iRow + i, iCol + j};
           indices.push_back(newIndex);
           tracker++;
         }
@@ -501,7 +496,7 @@ std::vector<ViewShed::XYZ> ViewShed::getSliceIndices(GSlice slc, float iRow, flo
       tracker = 0;
       while (j > (-1 * (i + 1))) {
         if (inGrid(iRow + i, iCol + j) == true) {
-          XYZ newIndex = {iRow + i, iCol + j, 0};
+          XY newIndex = {iRow + i, iCol + j};
           indices.push_back(newIndex);
           tracker++;
         }
@@ -517,7 +512,7 @@ std::vector<ViewShed::XYZ> ViewShed::getSliceIndices(GSlice slc, float iRow, flo
       tracker = 0;
       while (i < (-1 * (j - 1))) {
         if (inGrid(iRow + i, iCol + j) == true) {
-          XYZ newIndex = {iRow + i, iCol + j, 0};
+          XY newIndex = {iRow + i, iCol + j};
           indices.push_back(newIndex);
           tracker++;
         }
@@ -533,7 +528,7 @@ std::vector<ViewShed::XYZ> ViewShed::getSliceIndices(GSlice slc, float iRow, flo
       tracker = 0;
       while (i > (j - 1)) {
         if (inGrid(iRow + i, iCol + j) == true) {
-          XYZ newIndex = {iRow + i, iCol + j, 0};
+          XY newIndex = {iRow + i, iCol + j};
           indices.push_back(newIndex);
           tracker++;
         }
@@ -549,15 +544,15 @@ std::vector<ViewShed::XYZ> ViewShed::getSliceIndices(GSlice slc, float iRow, flo
 
 // ------------------
 // Processes a single edge
-void ViewShed::processEdge(GEdge se, float vpRow, float vpCol)
+void ViewShed::processEdge(GEdge se, int vpRow, int vpCol)
 {
   int rowInc = (mapIncEdge.at(se)).rowInc1;
   int colInc = (mapIncEdge.at(se)).colInc1;
 
-  int vRow = static_cast<int>(vpRow);
-  int vCol = static_cast<int>(vpCol);
+  float vRow = static_cast<float>(vpRow);
+  float vCol = static_cast<float>(vpCol);
 
-  XYZ vp = {vpRow, vpCol, (AuxGrid[vRow])[vCol]};
+  XYZ vp = {vRow, vCol, (AuxGrid[vpRow])[vpCol]};
 
   int dRow = vpRow + rowInc;
   int dCol = vpCol + colInc;
@@ -597,7 +592,7 @@ void ViewShed::processEdge(GEdge se, float vpRow, float vpCol)
     prev = {destPoint.X, destPoint.Y, destPoint.Z};
 
     if (visible) {
-      (vizScore[vRow])[vCol]++;
+      (vizScore[vpRow])[vpCol]++;
       (vizViews[dRow])[dCol]++;
     }
 
@@ -609,24 +604,26 @@ void ViewShed::processEdge(GEdge se, float vpRow, float vpCol)
 
 // ------------------
 // Processes a single slice
-void ViewShed::processSlice(GSlice slc, float vpRow, float vpCol)
+void ViewShed::processSlice(GSlice slc, int vpRow, int vpCol)
 {
   int prev1RowInc = (mapIncSlice.at(slc)).rowInc1;
   int prev1ColInc = (mapIncSlice.at(slc)).colInc1;
   int prev2RowInc = (mapIncSlice.at(slc)).rowInc2;
   int prev2ColInc = (mapIncSlice.at(slc)).colInc2;
 
-  int vRow = static_cast<int>(vpRow);
-  int vCol = static_cast<int>(vpCol);
+  float vRow = static_cast<float>(vpRow);
+  float vCol = static_cast<float>(vpCol);
 
-  XYZ vp = {vpRow, vpCol, (AuxGrid[vRow])[vCol]};
+  XYZ vp = {vRow, vCol, (AuxGrid[vpRow])[vpCol]};
   
-  std::vector<XYZ> indices = getSliceIndices(slc, vpRow, vpCol);
+  std::vector<XY> indices = getSliceIndices(slc, vpRow, vpCol);
 
   for (int i = 0; i < indices.size(); i++) {
-    XYZ currIndex = indices[i];
-    int cRow = static_cast<int>(currIndex.X);
-    int cCol = static_cast<int>(currIndex.Y);
+    XY cIndex = indices[i];
+    int cRow = cIndex.X;
+    int cCol = cIndex.Y;
+    float cfRow = static_cast<float>(cIndex.X);
+    float cfCol = static_cast<float>(cIndex.Y);
 
     if ((TrackerGrid[cRow])[cCol] == 1) {
       continue;
@@ -646,7 +643,7 @@ void ViewShed::processSlice(GSlice slc, float vpRow, float vpCol)
                       static_cast<float>(prev2Col), 
                       (AuxGrid[prev2Row])[prev2Col]};
     
-    XYZ currPoint = {currIndex.X, currIndex.Y, (AuxGrid[currIndex.X])[currIndex.Y]};
+    XYZ currPoint = {cfRow, cfCol, (AuxGrid[cRow])[cCol]};
 
     XYZ aboveCurr = {currPoint.X, currPoint.Y, currPoint.Z + 1};
 
@@ -658,7 +655,7 @@ void ViewShed::processSlice(GSlice slc, float vpRow, float vpCol)
     if (projHeight > realHeight) {
       (AuxGrid[cRow])[cCol] = projHeight;
     } else {
-      (vizScore[vRow])[vCol]++;
+      (vizScore[vpRow])[vpCol]++;
       (vizViews[cRow])[cCol]++;
     }
   }
@@ -667,10 +664,15 @@ void ViewShed::processSlice(GSlice slc, float vpRow, float vpCol)
 
 // ------------------
 // Processes all edges based on a view point
-void ViewShed::processAllEdges(float vpRow, float vpCol)
+void ViewShed::processAllEdges(int vpRow, int vpCol)
 {
   for (int i = 0; i < allEdges.size(); i++) {
     GEdge currEdge = allEdges.at(i);
+
+    //std::cout << static_cast<int>(currEdge) << std::endl;
+
+    // FIXME: Things are messing up here when processing all points 
+    // ---------------------------
     processEdge(currEdge, vpRow, vpCol);
   }
 }
@@ -678,7 +680,7 @@ void ViewShed::processAllEdges(float vpRow, float vpCol)
 
 // -----------------
 // Processes all slices based on a view point-
-void ViewShed::processAllSlices(float vpRow, float vpCol)
+void ViewShed::processAllSlices(int vpRow, int vpCol)
 {
   for (int i = 0; i < allSlices.size(); i++) {
     GSlice currSlice = allSlices.at(i);
@@ -687,7 +689,39 @@ void ViewShed::processAllSlices(float vpRow, float vpCol)
 }
 
 
+void ViewShed::processAllPoints(void) {
+  for (int i = 0; i < MaxRow; i++) {
+    for (int j = 0; j < MaxCol; j++) {
+      std::cout << "Edges" << std::endl;
+    
+      processAllEdges(i, j);
+      
+      std::cout << "Slices" << std::endl;
+      
+      processAllSlices(i, j);
+      
+      XY tCoor = {i, j};
+      //((lut[tCoor.X])[tCoor.Y]) = vizViews;
+      std::cout << i << j << std::endl;
+      //printVizViews();
+      std::cout << std::endl;
+      //lut[tCoor] = vizViews;
+      //lut.emplace(tCoor, vizViews);
+      //refreshAllGrids();
+    }
+  }
+}
 
 
+bool ViewShed::queryVisibility(int srcRow, int srcCol, int destRow, int destCol) {
+  XY srcCoor = {srcRow - rowAdj, srcCol - colAdj};
+  XY dstCoor = {destRow - rowAdj, destCol - colAdj};
+  //auto trMap = *tMap;
+  if ((((lut[srcCoor.X])[srcCoor.Y])[dstCoor.X])[dstCoor.Y] == 1) {
+    return true;
+  } else {
+    return false;
+  }
+}
 
 

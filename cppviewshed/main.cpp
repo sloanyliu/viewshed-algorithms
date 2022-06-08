@@ -58,17 +58,27 @@ int main(int argc, char* argv[])
                                            {1, 2, 3, 4, 5},
                                            {1, 2, 3, 4, 5}};
 
-  std::vector<std::vector<float>> testerDEM = tdem3;
+  std::vector<std::vector<float>> testerDEM = tdem2;
 
-  ViewShed tester = ViewShed(testerDEM.size() / 2, testerDEM.size() / 2);
+  //ViewShed tester = ViewShed(testerDEM.size() / 2, testerDEM.size() / 2);
+  ViewShed tester = ViewShed(0, tdem3.size() - 1);
   tester.bootStrap(testerDEM); 
-  tester.processAllEdges(tester.VPRow, tester.VPCol);
-  tester.processAllSlices(tester.VPRow, tester.VPCol);
-  
+  tester.processAllEdges(1, 0);
+  tester.processAllSlices(1, 0);
   tester.printAuxGrid();
   tester.printVizViews();
   tester.printVizScore();
   tester.printTrackerGrid();
+  //tester.processAllEdges(tester.VPRow, tester.VPCol);
+  //tester.processAllSlices(tester.VPRow, tester.VPCol);
+  
+  /*
+  tester.processAllEdges(2, 2);
+  tester.processAllSlices(2, 2);
+  
+  */
+  // FIXME: function below is broken
+  //tester.processAllPoints();
 
   return 0;
 }
